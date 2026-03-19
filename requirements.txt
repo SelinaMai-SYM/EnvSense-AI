@@ -1,0 +1,11 @@
+pandas
+numpy
+streamlit
+streamlit-autorefresh
+scikit-learn
+joblib
+pyyaml
+matplotlib
+# Optional (handled gracefully if missing)
+# xgboost
+

@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+.DS_Store
+
+# Local hardware config (do not commit secrets/device-specific settings)
+config_hardware/config.yaml
+
+# Generated runtime data
+data/realtime.csv
+
+# Trained models (generated artifacts)
+models/**/model.joblib
+

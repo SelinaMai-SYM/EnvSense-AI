@@ -1,0 +1,12 @@
+sample_interval_sec: 10
+mock_mode: true
+dht22:
+  pin: 4
+ens160:
+  i2c_bus: 1
+  address: 0x53
+oled:
+  enabled: false
+  i2c_bus: 1
+  address: 0x3C
+
