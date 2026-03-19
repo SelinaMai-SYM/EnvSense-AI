@@ -48,9 +48,14 @@ class ENS160Reader:
         """
 
         try:
-            # Adafruit library exposes eco2 and tvoc values in ppm / ppb.
-            eco2 = getattr(self._adafruit_ens160, "eco2", None)
-            tvoc = getattr(self._adafruit_ens160, "tvoc", None)
+            # Different adafruit_ens160 versions expose either eCO2/TVOC or eco2/tvoc.
+            eco2 = getattr(self._adafruit_ens160, "eCO2", None)
+            if eco2 is None:
+                eco2 = getattr(self._adafruit_ens160, "eco2", None)
+
+            tvoc = getattr(self._adafruit_ens160, "TVOC", None)
+            if tvoc is None:
+                tvoc = getattr(self._adafruit_ens160, "tvoc", None)
             if eco2 is None or tvoc is None:
                 raise RuntimeError("ENS160 returned empty reading. Check I2C wiring/address.")
             return {"eco2_ppm": float(eco2), "tvoc": float(tvoc)}
