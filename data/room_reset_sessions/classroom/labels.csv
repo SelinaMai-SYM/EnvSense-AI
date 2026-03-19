@@ -1,3 +1,5 @@
 timestamp,best_action,location,environment_note
-2026-03-21T15:00:00Z,Open window,classroom,co2_trending_up
-2026-03-21T15:30:00Z,Move soon,classroom,persistent_high_eco2
+2026-03-23T08:14:50Z,Open window,classroom,baseline_co2_and_tvoc_rising
+2026-03-23T08:27:00Z,Stay,classroom,after_ventilation_air_improved_and_stable
+2026-03-23T08:45:00Z,Open door,classroom,occupancy_increase_with_tvoc_spike
+2026-03-23T08:57:30Z,Move soon,classroom,persistent_high_co2_despite_actions

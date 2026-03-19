@@ -1,0 +1,4 @@
+model_name,accuracy,macro_f1,n_total,n_train,n_test,confusion_matrix
+gradient_boosting,1.0,1.0,337,252,85,"[[30, 0, 0], [0, 15, 0], [0, 0, 40]]"
+hist_gradient_boosting,1.0,1.0,337,252,85,"[[30, 0, 0], [0, 15, 0], [0, 0, 40]]"
+random_forest,0.9764705882352941,0.9747259483114995,337,252,85,"[[29, 0, 1], [0, 14, 1], [0, 0, 40]]"

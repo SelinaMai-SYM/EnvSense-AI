@@ -14,13 +14,7 @@ def main() -> None:
     st.set_page_config(page_title="EnvSense AI", layout="wide")
     inject_styles()
 
-    st_autorefresh(interval=10_000, limit=None, key="envsense_autorefresh")
-
     root = repo_root()
-    csv_path = root / "data" / "realtime.csv"
-
-    df = load_realtime_data(str(csv_path))
-    latest, last_updated = get_latest_row(df)
 
     st.title("EnvSense AI")
     st.caption("Personal environment assistant for study and sleep")
@@ -37,16 +31,42 @@ def main() -> None:
         if st.button("Sleep Mode", use_container_width=True):
             st.session_state.mode = "sleep"
 
+    data_source = st.sidebar.radio(
+        "Data Source",
+        ["Realtime (Sensor)", "Offline (Demo)"],
+        index=0,
+    )
+
+    mode = st.session_state.mode
+    mode_for_path = mode if mode in {"study", "sleep"} else "study"
+
+    if data_source == "Realtime (Sensor)":
+        csv_path = root / "data" / "realtime.csv"
+        st_autorefresh(interval=10_000, limit=None, key="envsense_autorefresh")
+    else:
+        if mode_for_path == "sleep":
+            csv_path = root / "data" / "sleep_sessions" / "bedroom" / "realtime_bedroom.csv"
+        else:
+            csv_path = root / "data" / "room_reset_sessions" / "classroom" / "realtime_classroom.csv"
+
+    st.caption(f"Current data file: `{csv_path}`")
+
+    df = load_realtime_data(str(csv_path))
+    latest, last_updated = get_latest_row(df)
+
     # Shared live panel always
     render_sensor_panel(latest, last_updated)
     if latest is None:
-        st.warning("还没有实时数据。请先运行 `python3 main.py` 连接真实传感器并写入 `data/realtime.csv`。")
+        if data_source == "Realtime (Sensor)":
+            st.warning("还没有实时数据。请先运行 `python3 main.py` 连接真实传感器并写入 `data/realtime.csv`。")
+        else:
+            st.warning("离线示例数据为空。请检查 `room_reset_sessions` / `sleep_sessions` 下的 CSV。")
 
     st.divider()
 
-    if st.session_state.mode == "study":
+    if mode == "study":
         render_room_reset_page(csv_path=csv_path)
-    elif st.session_state.mode == "sleep":
+    elif mode == "sleep":
         render_sleep_guard_page(csv_path=csv_path)
     else:
         st.info("Select a mode to see guidance.")

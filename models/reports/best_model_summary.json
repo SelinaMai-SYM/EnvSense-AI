@@ -1,0 +1,6 @@
+{
+  "room_reset_best_model": "gradient_boosting",
+  "sleep_guard_best_model": "gradient_boosting",
+  "test_fraction": 0.25,
+  "force_synthetic": false
+}
