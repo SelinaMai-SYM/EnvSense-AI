@@ -28,10 +28,21 @@ Both modules share the same **sensing pipeline** and use **lightweight ML (Rando
 
 ## Install dependencies
 
+Recommended on Raspberry Pi (virtual environment first):
+
 ```bash
 cd "EnvSense-AI"
+python3 -m venv .venv
+source .venv/bin/activate
 python3 -m pip install --upgrade pip
 pip install -r requirements.txt
+```
+
+System packages commonly needed for hardware libraries:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y python3-dev libgpiod2 i2c-tools
 ```
 
 ---
@@ -41,8 +52,22 @@ pip install -r requirements.txt
 Edit `config_hardware/config.yaml`:
 
 - Ensure wiring and I2C are enabled on Raspberry Pi
+- DHT22 pin uses BCM numbering (default `21`, same as workshop example style)
 
 If `config.yaml` is missing, the project falls back to `config_hardware/config.example.yaml`.
+
+Enable I2C once on Pi:
+
+```bash
+sudo raspi-config
+# Interface Options -> I2C -> Enable
+```
+
+Check I2C devices:
+
+```bash
+i2cdetect -y 1
+```
 
 ---
 

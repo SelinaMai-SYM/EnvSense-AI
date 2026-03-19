@@ -6,6 +6,12 @@ scikit-learn
 joblib
 pyyaml
 matplotlib
+smbus2
+Adafruit-Blinka
+adafruit-circuitpython-dht
+adafruit-circuitpython-ens160
+adafruit-circuitpython-ssd1306
+Adafruit_DHT
 # Optional (handled gracefully if missing)
 # xgboost
 
