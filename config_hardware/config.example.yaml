@@ -1,5 +1,4 @@
 sample_interval_sec: 10
-mock_mode: true
 dht22:
   pin: 4
 ens160:

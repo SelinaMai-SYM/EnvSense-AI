@@ -1,17 +1,10 @@
 from __future__ import annotations
 
-import os
-from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
+from typing import Optional, Tuple
 
 import matplotlib.pyplot as plt
 import pandas as pd
-import numpy as np
 import streamlit as st
-
-from features.labels import simulate_environment_series
-from features.window_features import CSV_COLUMNS, get_recent_window, load_realtime_data
-from utils.io_utils import repo_root
 
 
 def inject_styles() -> None:
@@ -32,37 +25,6 @@ def inject_styles() -> None:
         """,
         unsafe_allow_html=True,
     )
-
-
-def _ensure_dirs(csv_path: Path) -> None:
-    csv_path.parent.mkdir(parents=True, exist_ok=True)
-
-
-def ensure_mock_realtime_data(*, csv_path: Path, mock_mode: bool, sample_interval_sec: int, minutes: int = 60) -> None:
-    """
-    Make the app runnable even if `main.py` hasn't been started yet.
-
-    In mock_mode only: generate synthetic history for plotting + inference.
-    """
-    if not mock_mode:
-        return
-
-    df = load_realtime_data(str(csv_path))
-    needed_rows = int(minutes * 60 // sample_interval_sec)
-    if df is not None and not df.empty and len(df) >= max(20, needed_rows // 6):
-        return
-
-    _ensure_dirs(csv_path)
-    # Generate a study-like series that covers both eco2/tvoc trends and thermal drift.
-    df_sim = simulate_environment_series(
-        duration_minutes=minutes,
-        sample_interval_sec=sample_interval_sec,
-        seed=777,
-        scenario="study",
-    )
-
-    # Overwrite so charts are consistent.
-    df_sim.to_csv(csv_path, index=False)
 
 
 def get_latest_row(df: pd.DataFrame) -> Tuple[Optional[pd.Series], Optional[pd.Timestamp]]:

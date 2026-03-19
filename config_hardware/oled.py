@@ -11,18 +11,17 @@ class OLEDDisplay:
     """
     Optional SSD1306 OLED display.
 
-    In mock/no-hardware mode, initialization is skipped and `show()` becomes a no-op.
+    If OLED libs/hardware are unavailable, initialization is skipped and `show()` becomes a no-op.
     """
 
-    def __init__(self, cfg: Dict[str, Any], *, enabled: bool, mock_mode: bool) -> None:
+    def __init__(self, cfg: Dict[str, Any], *, enabled: bool) -> None:
         self.enabled = bool(enabled)
-        self.mock_mode = mock_mode
 
         self._display: Optional[Any] = None
         self._width = 128
         self._height = 64
 
-        if not self.enabled or self.mock_mode:
+        if not self.enabled:
             return
 
         try:

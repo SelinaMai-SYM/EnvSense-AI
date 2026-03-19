@@ -73,23 +73,22 @@ def compute_mode_result_text(df: pd.DataFrame, mode: str) -> str:
 
 def main(*, iterations: Optional[int] = None) -> None:
     cfg = load_hardware_config()
-    mock_mode = bool(cfg.get("mock_mode", True))
     interval_sec = int(cfg.get("sample_interval_sec", 10))
 
     root = repo_root()
     csv_path = root / "data" / "realtime.csv"
     mode_file = root / "data" / "last_mode.txt"
 
-    dht_reader = DHT22Reader(cfg=cfg.get("dht22", {}), mock_mode=mock_mode, interval_sec=interval_sec)
-    ens_reader = ENS160Reader(cfg=cfg.get("ens160", {}), mock_mode=mock_mode, interval_sec=interval_sec)
+    dht_reader = DHT22Reader(cfg=cfg.get("dht22", {}))
+    ens_reader = ENS160Reader(cfg=cfg.get("ens160", {}))
 
     oled_cfg = cfg.get("oled", {}) or {}
     oled_enabled = bool(oled_cfg.get("enabled", False))
-    oled = OLEDDisplay(oled_cfg, enabled=oled_enabled, mock_mode=mock_mode)
+    oled = OLEDDisplay(oled_cfg, enabled=oled_enabled)
 
     ensure_realtime_csv(csv_path)
 
-    logger.info("Starting EnvSense-AI sensor logger (mock_mode=%s, interval=%ss)", mock_mode, interval_sec)
+    logger.info("Starting EnvSense-AI sensor logger (real hardware mode, interval=%ss)", interval_sec)
 
     i = 0
     oled_every = 6  # ~1 minute with interval=10s

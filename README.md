@@ -13,7 +13,7 @@ The system provides **one Streamlit website** with **two scenario modules**:
 2. **Dorm Sleep Guard (Sleep Mode)**  
    Helps you decide whether the dorm room is sleep-ready, or whether you should ventilate first.
 
-Both modules share the same **sensing pipeline** and use **lightweight ML (RandomForest)** with safe baseline fallbacks when models/data are not available.
+Both modules share the same **sensing pipeline** and use **lightweight ML (RandomForest)** with safe baseline fallbacks when models are not available.
 
 ---
 
@@ -23,22 +23,6 @@ Both modules share the same **sensing pipeline** and use **lightweight ML (Rando
 - **DHT22** for `temp_C`, `humidity`
 - **ENS160** for `eco2_ppm`, `tvoc`
 - Optional **SSD1306** OLED display
-
----
-
-## Mock Mode (runs with no hardware)
-
-Mock mode is enabled by default in `config_hardware/config.yaml`:
-
-- `mock_mode: true`
-
-When mock mode is on, the sensor drivers generate **realistic synthetic values** that:
-
-- drift over time
-- include noise and occasional spikes
-- produce plausible outputs for both Study and Sleep modes
-
-This lets the **whole project run end-to-end** (Streamlit UI + inference + training) even with nothing connected.
 
 ---
 
@@ -56,7 +40,6 @@ pip install -r requirements.txt
 
 Edit `config_hardware/config.yaml`:
 
-- Set `mock_mode: false` when using real sensors
 - Ensure wiring and I2C are enabled on Raspberry Pi
 
 If `config.yaml` is missing, the project falls back to `config_hardware/config.example.yaml`.
@@ -91,8 +74,6 @@ streamlit run dashboard/app.py --server.address 0.0.0.0 --server.port 8501
 ```
 
 The UI auto-refreshes every **10 seconds** using `streamlit-autorefresh`.
-
-In mock mode, the app will also generate synthetic history automatically if `data/realtime.csv` is empty.
 
 ---
 
