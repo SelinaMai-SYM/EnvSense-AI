@@ -71,12 +71,12 @@ def compute_mode_result_text(df: pd.DataFrame, mode: str) -> str:
     return f"Study: {action}\n{explanation}"[:32]
 
 
-def main(*, iterations: Optional[int] = None) -> None:
+def main(*, iterations: Optional[int] = None, csv_path_override: Optional[str] = None) -> None:
     cfg = load_hardware_config()
     interval_sec = int(cfg.get("sample_interval_sec", 10))
 
     root = repo_root()
-    csv_path = root / "data" / "realtime.csv"
+    csv_path = Path(csv_path_override) if csv_path_override else (root / "data" / "realtime.csv")
     mode_file = root / "data" / "last_mode.txt"
 
     dht_reader = DHT22Reader(cfg=cfg.get("dht22", {}))
@@ -136,6 +136,12 @@ def main(*, iterations: Optional[int] = None) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="EnvSense-AI sensor logger")
     parser.add_argument("--iterations", type=int, default=None, help="Run a finite number of loops (debug).")
+    parser.add_argument(
+        "--csv-path",
+        type=str,
+        default=None,
+        help="Optional output CSV path for sensor rows (useful for per-location collection).",
+    )
     args = parser.parse_args()
-    main(iterations=args.iterations)
+    main(iterations=args.iterations, csv_path_override=args.csv_path)
 

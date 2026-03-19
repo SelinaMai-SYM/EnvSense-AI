@@ -8,7 +8,12 @@ import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 
-from features.labels import SLEEP_READINESS, derive_sleep_readiness, simulate_environment_series
+from features.labels import (
+    SLEEP_READINESS,
+    derive_sleep_readiness,
+    load_sleep_morning_feedback,
+    simulate_environment_series,
+)
 from features.window_features import compute_window_features, load_realtime_data
 from utils.io_utils import load_hardware_config
 
@@ -72,6 +77,54 @@ def _bootstrap_synthetic_training(
     return X_rows, y
 
 
+def _extract_training_from_human_labels(
+    df: pd.DataFrame,
+    *,
+    session_root: str | Path,
+    sample_interval_sec: int,
+    window_minutes: int = 30,
+) -> Tuple[List[Dict[str, float]], List[str]]:
+    window_steps = max(2, int(window_minutes * 60 // sample_interval_sec))
+    session_root = Path(session_root)
+    X_rows: List[Dict[str, float]] = []
+    y: List[str] = []
+
+    if df.empty or not session_root.exists():
+        return X_rows, y
+
+    df_sorted = df.sort_values("timestamp").reset_index(drop=True).copy()
+    df_sorted["timestamp"] = pd.to_datetime(df_sorted["timestamp"], utc=True, errors="coerce")
+    df_sorted = df_sorted.dropna(subset=["timestamp"])
+    if df_sorted.empty:
+        return X_rows, y
+
+    for session_dir in sorted(session_root.iterdir()):
+        if not session_dir.is_dir():
+            continue
+        labels_df = load_sleep_morning_feedback(session_dir)
+        if labels_df.empty:
+            continue
+
+        labels_df["timestamp"] = pd.to_datetime(labels_df["timestamp"], utc=True, errors="coerce")
+        labels_df = labels_df.dropna(subset=["timestamp", "sleep_readiness"])
+        labels_df = labels_df[labels_df["sleep_readiness"].isin(SLEEP_READINESS)]
+        if labels_df.empty:
+            continue
+
+        for _, row in labels_df.iterrows():
+            ts = row["timestamp"]
+            idx = int(df_sorted["timestamp"].searchsorted(ts, side="right"))
+            if idx < window_steps:
+                continue
+            df_window = df_sorted.iloc[idx - window_steps : idx]
+            if len(df_window) < window_steps:
+                continue
+            X_rows.append(compute_window_features(df_window))
+            y.append(str(row["sleep_readiness"]))
+
+    return X_rows, y
+
+
 def train_sleep_guard_model(
     *,
     realtime_csv_path: str | Path,
@@ -89,11 +142,18 @@ def train_sleep_guard_model(
     sample_interval_sec = int(cfg.get("sample_interval_sec", 10))
 
     df = load_realtime_data(str(realtime_csv_path))
+    session_root = Path(realtime_csv_path).parent / "sleep_sessions"
+
+    X_rows, y = _extract_training_from_human_labels(
+        df,
+        session_root=session_root,
+        sample_interval_sec=sample_interval_sec,
+    )
 
     if not force_synthetic:
-        X_rows, y = _extract_training_from_realtime(df, sample_interval_sec=sample_interval_sec)
-    else:
-        X_rows, y = [], []
+        X_auto, y_auto = _extract_training_from_realtime(df, sample_interval_sec=sample_interval_sec)
+        X_rows.extend(X_auto)
+        y.extend(y_auto)
 
     min_samples = 220
     if len(y) < min_samples:

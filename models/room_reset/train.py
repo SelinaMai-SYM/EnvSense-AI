@@ -8,7 +8,12 @@ import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 
-from features.labels import ROOM_RESET_ACTIONS, derive_room_reset_best_action, simulate_environment_series
+from features.labels import (
+    ROOM_RESET_ACTIONS,
+    derive_room_reset_best_action,
+    load_room_reset_session_action_labels,
+    simulate_environment_series,
+)
 from features.window_features import compute_window_features, load_realtime_data
 from utils.io_utils import load_hardware_config
 
@@ -80,6 +85,54 @@ def _bootstrap_synthetic_training(
     return X_rows, y
 
 
+def _extract_training_from_human_labels(
+    df: pd.DataFrame,
+    *,
+    session_root: str | Path,
+    sample_interval_sec: int,
+    window_minutes: int = 5,
+) -> Tuple[List[Dict[str, float]], List[str]]:
+    window_steps = max(2, int(window_minutes * 60 // sample_interval_sec))
+    session_root = Path(session_root)
+    X_rows: List[Dict[str, float]] = []
+    y: List[str] = []
+
+    if df.empty or not session_root.exists():
+        return X_rows, y
+
+    df_sorted = df.sort_values("timestamp").reset_index(drop=True).copy()
+    df_sorted["timestamp"] = pd.to_datetime(df_sorted["timestamp"], utc=True, errors="coerce")
+    df_sorted = df_sorted.dropna(subset=["timestamp"])
+    if df_sorted.empty:
+        return X_rows, y
+
+    for session_dir in sorted(session_root.iterdir()):
+        if not session_dir.is_dir():
+            continue
+        labels_df = load_room_reset_session_action_labels(session_dir)
+        if labels_df.empty:
+            continue
+
+        labels_df["timestamp"] = pd.to_datetime(labels_df["timestamp"], utc=True, errors="coerce")
+        labels_df = labels_df.dropna(subset=["timestamp"])
+        labels_df = labels_df[labels_df["best_action"].isin(ROOM_RESET_ACTIONS)]
+        if labels_df.empty:
+            continue
+
+        for _, row in labels_df.iterrows():
+            ts = row["timestamp"]
+            idx = int(df_sorted["timestamp"].searchsorted(ts, side="right"))
+            if idx < window_steps:
+                continue
+            df_past = df_sorted.iloc[idx - window_steps : idx]
+            if len(df_past) < window_steps:
+                continue
+            X_rows.append(compute_window_features(df_past))
+            y.append(str(row["best_action"]))
+
+    return X_rows, y
+
+
 def train_room_reset_model(
     *,
     realtime_csv_path: str | Path,
@@ -99,13 +152,25 @@ def train_room_reset_model(
     sample_interval_sec = int(cfg.get("sample_interval_sec", 10))
 
     df = load_realtime_data(str(realtime_csv_path))
+    session_root = Path(realtime_csv_path).parent / "room_reset_sessions"
 
     X_rows: List[Dict[str, float]]
     y: List[str]
     X_rows, y = ([], [])
 
+    X_human, y_human = _extract_training_from_human_labels(
+        df,
+        session_root=session_root,
+        sample_interval_sec=sample_interval_sec,
+    )
+    if y_human:
+        X_rows.extend(X_human)
+        y.extend(y_human)
+
     if not force_synthetic:
-        X_rows, y = _extract_training_from_realtime(df, sample_interval_sec=sample_interval_sec)
+        X_auto, y_auto = _extract_training_from_realtime(df, sample_interval_sec=sample_interval_sec)
+        X_rows.extend(X_auto)
+        y.extend(y_auto)
 
     # Ensure we always have enough samples for training
     min_samples = 250

@@ -1,0 +1,3 @@
+timestamp,best_action,location,environment_note
+2026-03-21T15:00:00Z,Open window,classroom,co2_trending_up
+2026-03-21T15:30:00Z,Move soon,classroom,persistent_high_eco2

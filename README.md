@@ -79,6 +79,20 @@ This continuously reads sensors every `sample_interval_sec` and appends one CSV 
 python3 main.py
 ```
 
+Collect to a location-specific file (recommended for cleaner datasets):
+
+```bash
+python3 main.py --csv-path data/realtime_dorm_room.csv
+python3 main.py --csv-path data/realtime_library.csv
+```
+
+Current project setup (two locations):
+
+```bash
+python3 main.py --csv-path data/realtime_classroom.csv
+python3 main.py --csv-path data/realtime_bedroom.csv
+```
+
 Debug (finite loop):
 
 ```bash
@@ -121,27 +135,92 @@ Inference on the Pi:
 Training is intended for your laptop/local Python environment:
 
 ```bash
-python3 train_models.py
+python3 models/train_models.py
+```
+
+Train with separate CSV files per model/location:
+
+```bash
+python3 models/train_models.py \
+  --room-reset-csv data/realtime_classroom.csv \
+  --sleep-csv data/realtime_bedroom.csv
 ```
 
 What it does:
 
 - Trains **Room Reset Coach** model (`models/room_reset/model.joblib`)
 - Trains **Dorm Sleep Guard** model (`models/sleep_guard/model.joblib`)
-- If realtime training data is missing/insufficient, it trains on **synthetic bootstrap data**
+- Uses `data/realtime.csv` windows + optional human labels from session folders
+- If data is missing/insufficient, it backfills with **synthetic bootstrap data**
 
 Trained models are saved as `model.joblib`.
+
+Synthetic-only training (debug):
+
+```bash
+python3 models/train_models.py --force-synthetic
+```
 
 ---
 
 ## Session data organization
 
-The repo contains folders for future session-based labeling/feedback:
+The repo supports optional manual labels in session folders:
 
 - `data/room_reset_sessions/`
 - `data/sleep_sessions/`
 
-Currently, the app includes a placeholder morning check-in block for Sleep Mode, and the code includes hooks for reading optional label CSV files if you add them later.
+### Room Reset label format
+
+Create a session folder, e.g. `data/room_reset_sessions/2026-03-19-evening/`, then add `labels.csv` (or `actions.csv`):
+
+```csv
+timestamp,best_action
+2026-03-19T10:20:00Z,Open window
+2026-03-19T10:45:00Z,Stay
+```
+
+`best_action` must be one of:
+
+- `Stay`
+- `Open window`
+- `Open door`
+- `Move soon`
+
+### Sleep Guard morning feedback format
+
+Create a session folder, e.g. `data/sleep_sessions/2026-03-19-night/`, then add `morning_feedback.csv`:
+
+```csv
+timestamp,morning_feedback
+2026-03-20T00:00:00Z,slept_well
+```
+
+`morning_feedback` must be one of:
+
+- `slept_well`
+- `okay`
+- `poor_sleep`
+
+The trainer maps these to:
+
+- `Good to sleep`
+- `Sleep okay after ventilating`
+- `Not ideal yet`
+
+### Practical labeling workflow
+
+1. Run logger on Raspberry Pi to collect `data/realtime.csv`.
+2. Copy the CSV to local machine for training.
+3. Create a new session folder (do not overwrite previous sessions), for example:
+   - `data/room_reset_sessions/2026-03-21-library/labels.csv`
+   - `data/sleep_sessions/2026-03-21-dorm/morning_feedback.csv`
+4. Edit only the required columns:
+   - Room Reset: `timestamp`, `best_action`
+   - Sleep Guard: `timestamp`, `morning_feedback`
+5. Optional metadata columns (e.g. `location`, `environment_note`) are allowed and ignored by training, but useful for your records.
+
+To avoid mixing different places/environments, keep them in separate session folders and use descriptive session names.
 
 ---
 
@@ -151,5 +230,5 @@ Typical workflow:
 
 1. Start the sensor logger on the Pi (`python3 main.py`)
 2. Start the Streamlit app (`streamlit run dashboard/app.py ...`)
-3. Train/update models as you collect data (`python3 train_models.py`)
+3. Train/update models as you collect data (`python3 models/train_models.py`)
 
