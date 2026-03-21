@@ -50,7 +50,8 @@ def predict_room_reset(
     features = compute_window_features(df_window)
 
     if model_path is None:
-        model_path = Path(__file__).resolve().parents[1] / "model.joblib"
+        # Default model lives next to this infer module.
+        model_path = Path(__file__).resolve().parent / "model.joblib"
 
     model_path = Path(model_path)
     if not model_path.exists():

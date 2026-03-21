@@ -6,7 +6,7 @@ EnvSense AI is a personal environment assistant for Raspberry Pi. It reads your 
 - **ENS160** (eCO2 + TVOC)
 - Optional **SSD1306 (I2C OLED)** for local display
 
-The system provides **one Streamlit website** with **two scenario modules**:
+The system provides **one web dashboard** with **two scenario modules**:
 
 1. **Room Reset Coach (Study Mode)**  
    Helps you decide whether the room is still suitable for studying daytime, and recommends what to do next.
@@ -106,13 +106,13 @@ CSV columns:
 
 ---
 
-## Run the Streamlit website
+## Run the Web Dashboard (FastAPI + HTML/CSS/JS)
 
 ```bash
-streamlit run dashboard/app.py --server.address 0.0.0.0 --server.port 8501
+uvicorn fastapi_app:app --host 0.0.0.0 --port 8501 --reload
 ```
 
-The UI auto-refreshes every **10 seconds** using `streamlit-autorefresh`.
+The front-end calls backend APIs every **10 seconds** in Realtime mode (offline demo uses a slower refresh).
 
 ---
 

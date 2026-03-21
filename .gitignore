@@ -2,11 +2,15 @@ __pycache__/
 *.pyc
 .DS_Store
 
+# Python virtual environment (create locally on each machine)
+.venv/
+
 # Local hardware config (do not commit secrets/device-specific settings)
 config_hardware/config.yaml
 
 # Generated runtime data
 data/realtime.csv
+data/last_mode.txt
 
 # Trained models (generated artifacts)
 models/**/model.joblib
