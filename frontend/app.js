@@ -115,6 +115,8 @@ function updateCharts(trends) {
 function updateUIForMode() {
   const isSleep = state.mode === "sleep";
   el("sleep-checkin").style.display = isSleep ? "block" : "none";
+  el("btn-study")?.classList.toggle("active", state.mode === "study");
+  el("btn-sleep")?.classList.toggle("active", state.mode === "sleep");
 
   if (state.mode === "study") {
     el("out-title-1").textContent = "Current room state";
