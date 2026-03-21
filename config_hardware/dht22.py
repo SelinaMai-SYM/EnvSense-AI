@@ -1,7 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import logging
+import time
 from typing import Any, Dict
+
+logger = logging.getLogger("envsense.dht22")
 
 
 @dataclass
@@ -20,9 +24,14 @@ class DHT22Reader:
     ) -> None:
         # Use BCM GPIO numbering (same convention as workshop example).
         self.pin = int(cfg.get("pin", 21))
+        self.max_retries = max(1, int(cfg.get("max_retries", 3)))
+        self.retry_delay_sec = max(0.0, float(cfg.get("retry_delay_sec", 1.0)))
+        self.warn_after_consecutive_failures = max(1, int(cfg.get("warn_after_consecutive_failures", 3)))
         self._method = ""
         self._sensor = None
         self._adafruit_dht_legacy = None
+        self._consecutive_failures = 0
+        self._last_good_reading: Dict[str, float] | None = None
 
         # Prefer CircuitPython `adafruit_dht` first (workshop style), then
         # fallback to legacy `Adafruit_DHT`.
@@ -58,23 +67,46 @@ class DHT22Reader:
         Returns:
           { "temp_C": float, "humidity": float }
         """
+        last_exc: Exception | None = None
 
-        try:
-            if self._method == "adafruit_dht":
-                temp = getattr(self._sensor, "temperature", None)
-                humidity = getattr(self._sensor, "humidity", None)
-            else:
-                if self._adafruit_dht_legacy is None or self._sensor is None:
-                    raise RuntimeError("DHT22 backend not initialized.")
-                dht_model, pin = self._sensor
-                humidity, temp = self._adafruit_dht_legacy.read_retry(dht_model, pin)
+        for attempt in range(1, self.max_retries + 1):
+            try:
+                if self._method == "adafruit_dht":
+                    temp = getattr(self._sensor, "temperature", None)
+                    humidity = getattr(self._sensor, "humidity", None)
+                else:
+                    if self._adafruit_dht_legacy is None or self._sensor is None:
+                        raise RuntimeError("DHT22 backend not initialized.")
+                    dht_model, pin = self._sensor
+                    humidity, temp = self._adafruit_dht_legacy.read_retry(dht_model, pin)
 
-            if temp is None or humidity is None:
-                raise RuntimeError(
-                    "DHT22 returned empty reading. Check wiring, power, pull-up resistor, and GPIO pin."
-                )
+                if temp is None or humidity is None:
+                    raise RuntimeError(
+                        "DHT22 returned empty reading. Check wiring, power, pull-up resistor, and GPIO pin."
+                    )
 
-            return {"temp_C": float(temp), "humidity": float(humidity)}
-        except Exception as exc:
-            raise RuntimeError("Failed to read DHT22 sensor.") from exc
+                reading = {"temp_C": float(temp), "humidity": float(humidity)}
+                self._consecutive_failures = 0
+                self._last_good_reading = reading
+                return reading
+            except Exception as exc:
+                last_exc = exc
+                if attempt < self.max_retries:
+                    time.sleep(self.retry_delay_sec)
+
+        self._consecutive_failures += 1
+        if self._consecutive_failures >= self.warn_after_consecutive_failures:
+            logger.warning(
+                (
+                    "DHT22 read failed %d consecutive times. "
+                    "Using fallback reading and continuing."
+                ),
+                self._consecutive_failures,
+                exc_info=last_exc,
+            )
+
+        if self._last_good_reading is not None:
+            return self._last_good_reading
+
+        return {"temp_C": float("nan"), "humidity": float("nan")}
 
