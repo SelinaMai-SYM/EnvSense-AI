@@ -182,7 +182,7 @@ async function refreshView() {
     updateCharts(data?.trends ?? {});
   } catch (err) {
     console.error(err);
-    setText("out-explanation", "加载失败，请检查后端服务或 CSV 数据。");
+    setText("out-explanation", "Failed to load. Please check the backend service or CSV data.");
   }
 }
 
@@ -197,10 +197,10 @@ async function submitMorningFeedback(morningFeedback) {
     if (!res.ok) {
       throw new Error(data?.detail ?? "request failed");
     }
-    el("checkin-status").textContent = `已记录：${data.morning_feedback}（${data.session_name}）`;
+    el("checkin-status").textContent = `Saved: ${data.morning_feedback} (${data.session_name})`;
   } catch (err) {
     console.error(err);
-    el("checkin-status").textContent = `记录失败：${err.message || err}`;
+    el("checkin-status").textContent = `Save failed: ${err.message || err}`;
   }
 }
 

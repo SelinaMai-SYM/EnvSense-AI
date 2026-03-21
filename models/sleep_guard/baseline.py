@@ -45,33 +45,33 @@ def baseline_sleep_guard_from_features(df_window: pd.DataFrame) -> Dict[str, str
     if eco2_mean <= 900.0 and eco2_max <= 1100.0 and eco2_slope <= 8.0 and thermal_ok and thermal_stable:
         sleep_readiness = "Good to sleep"
         bedtime_action = "Sleep now"
-        risk = "eCO2 和体感都很稳定"
+        risk = "eCO2 and thermal comfort are both stable."
         conf_score = 0.88 - 0.15 * float(max(0.0, eco2_high_fraction - 0.1) / 0.9)
     elif eco2_mean <= 1050.0 and eco2_max <= 1300.0 and (thermal_ok or thermal_stable) and eco2_slope <= 14.0:
         sleep_readiness = "Sleep okay after ventilating"
         bedtime_action = "Ventilate for 10–15 minutes"
         risk_bits = []
         if eco2_mean > 900.0:
-            risk_bits.append(f"eCO2 偏高（均值≈{eco2_mean:.0f}）")
+            risk_bits.append(f"eCO2 is slightly elevated (avg~{eco2_mean:.0f})")
         if not thermal_ok:
-            risk_bits.append("体感略不理想")
+            risk_bits.append("thermal comfort is slightly off")
         if not thermal_stable:
-            risk_bits.append("温湿度波动较明显")
-        risk = "；".join(risk_bits)[:46] if risk_bits else "稍有不理想，建议先通风"
+            risk_bits.append("temperature/humidity fluctuate noticeably")
+        risk = "; ".join(risk_bits)[:80] if risk_bits else "Conditions are mildly suboptimal; ventilate first."
         conf_score = 0.62 + 0.12 * float(max(0.0, 1050.0 - eco2_mean) / 300.0)
     else:
         sleep_readiness = "Not ideal yet"
         bedtime_action = "Keep door open"
         risk_bits = []
         if eco2_mean > 1050.0:
-            risk_bits.append(f"eCO2 长时间偏高（均值≈{eco2_mean:.0f}）")
+            risk_bits.append(f"eCO2 has remained high for a while (avg~{eco2_mean:.0f})")
         if eco2_high_fraction > 0.4:
-            risk_bits.append(f"高eCO2比例={eco2_high_fraction:.2f}")
+            risk_bits.append(f"high eCO2 ratio={eco2_high_fraction:.2f}")
         if not thermal_stable:
-            risk_bits.append("温湿度不稳定")
+            risk_bits.append("temperature/humidity are unstable")
         if not risk_bits:
-            risk_bits.append("通风条件不佳")
-        risk = "；".join(risk_bits)[:56]
+            risk_bits.append("ventilation conditions are not ideal")
+        risk = "; ".join(risk_bits)[:100]
         conf_score = 0.48 + 0.35 * float(min(1.0, eco2_high_fraction + (1.0 if not thermal_stable else 0.0) * 0.25))
 
     return {

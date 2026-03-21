@@ -92,20 +92,20 @@ def predict_room_reset(
         reason_bits = []
         reason_bits.append(f"eCO2≈{eco2_mean:.0f}ppm")
         if tvoc_spike:
-            reason_bits.append("TVOC尖峰")
+            reason_bits.append("TVOC spike")
         if eco2_high_frac >= 0.4:
-            reason_bits.append(f"高eCO2比例={eco2_high_frac:.2f}")
+            reason_bits.append(f"high eCO2 ratio={eco2_high_frac:.2f}")
 
         action_explain = baseline["explanation"]
         if pred_action != baseline["best_action"]:
-            action_explain = f"ML建议：{pred_action}。{action_explain}"
+            action_explain = f"ML suggested action: {pred_action}. {action_explain}"
 
         return {
             "room_state": baseline["room_state"],
             "best_action": str(pred_action),
             "confidence": conf,
             "confidence_label": conf_label,
-            "explanation": (f"{'; '.join(reason_bits)}。{action_explain}")[:180],
+            "explanation": (f"{'; '.join(reason_bits)}. {action_explain}")[:180],
         }
     except Exception:
         # Fail gracefully to baseline

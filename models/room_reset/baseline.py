@@ -45,7 +45,10 @@ def baseline_room_reset_from_features(df_window: pd.DataFrame) -> Dict[str, str]
         room_state = "Poor ventilation"
         best_action = "Open window"
         conf_score = 0.90 - 0.15 * float(max(0.0, eco2_mean - 1100.0) / 1200.0)
-        explanation = f"eCO2 長期偏高（{eco2_mean:.0f} ppm，比例={eco2_high_fraction:.2f}），建议开窗快速降下来。"
+        explanation = (
+            f"eCO2 has stayed elevated ({eco2_mean:.0f} ppm, high-ratio={eco2_high_fraction:.2f}); "
+            "open a window to bring it down quickly."
+        )
         return {
             "room_state": room_state,
             "best_action": best_action,
@@ -59,7 +62,10 @@ def baseline_room_reset_from_features(df_window: pd.DataFrame) -> Dict[str, str]
         # If air already smells / VOC spikes, open door (cross-ventilation)
         best_action = "Open door" if tvoc_spike >= 1.0 else "Open window"
         conf_score = 0.68 + min(0.2, eco2_slope / 40.0)
-        explanation = f"eCO2 正在上升（斜率≈{eco2_slope:.1f}），且当前空气不太稳定；建议先做通风。"
+        explanation = (
+            f"eCO2 is rising (slope~{eco2_slope:.1f}) and air quality is becoming less stable; "
+            "start ventilation first."
+        )
         return {
             "room_state": room_state,
             "best_action": best_action,
@@ -72,7 +78,7 @@ def baseline_room_reset_from_features(df_window: pd.DataFrame) -> Dict[str, str]
         room_state = "Getting stuffy"
         best_action = "Open door"
         conf_score = 0.62
-        explanation = "TVOC 出现尖峰，可能存在短时空气质量恶化；建议开门形成对流。"
+        explanation = "A TVOC spike suggests short-term air-quality deterioration; open the door for cross-ventilation."
         return {
             "room_state": room_state,
             "best_action": best_action,
@@ -85,7 +91,10 @@ def baseline_room_reset_from_features(df_window: pd.DataFrame) -> Dict[str, str]
         room_state = "Getting stuffy"
         best_action = "Open window"
         conf_score = 0.55
-        explanation = "温湿度有偏离（让人更不舒服），同时 eCO2 未明显恶化；开窗改善体感。"
+        explanation = (
+            "Temperature/humidity are outside comfort range while eCO2 is not severely degraded; "
+            "open a window to improve comfort."
+        )
         return {
             "room_state": room_state,
             "best_action": best_action,
@@ -98,7 +107,10 @@ def baseline_room_reset_from_features(df_window: pd.DataFrame) -> Dict[str, str]
         room_state = "Good now"
         best_action = "Stay"
         conf_score = 0.86
-        explanation = "eCO2 处于较舒适区间且趋势平稳；温湿度也在舒适范围内，当前适合继续学习。"
+        explanation = (
+            "eCO2 is in a comfortable range and stable, and temperature/humidity are also within comfort range; "
+            "the room is suitable for studying."
+        )
         return {
             "room_state": room_state,
             "best_action": best_action,
@@ -110,7 +122,7 @@ def baseline_room_reset_from_features(df_window: pd.DataFrame) -> Dict[str, str]
     room_state = "Uncertain"
     best_action = "Move soon"
     conf_score = 0.40
-    explanation = "数据不足或指标冲突较多，无法做出高把握建议；倾向于先做一次通风/调整。"
+    explanation = "Data is limited or signals conflict, so confidence is lower; try a quick ventilation or adjustment first."
     return {
         "room_state": room_state,
         "best_action": best_action,
