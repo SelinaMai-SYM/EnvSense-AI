@@ -1,6 +1,7 @@
 const state = {
   mode: "study",
   source: "realtime",
+  morningFeedback: null,
   timer: null,
 };
 
@@ -117,6 +118,9 @@ function updateUIForMode() {
   el("sleep-checkin").style.display = isSleep ? "block" : "none";
   el("btn-study")?.classList.toggle("active", state.mode === "study");
   el("btn-sleep")?.classList.toggle("active", state.mode === "sleep");
+  el("btn-checkin-slept")?.classList.toggle("active", state.morningFeedback === "slept_well");
+  el("btn-checkin-okay")?.classList.toggle("active", state.morningFeedback === "okay");
+  el("btn-checkin-poor")?.classList.toggle("active", state.morningFeedback === "poor_sleep");
 
   if (state.mode === "study") {
     el("out-title-1").textContent = "Current room state";
@@ -189,6 +193,8 @@ async function refreshView() {
 }
 
 async function submitMorningFeedback(morningFeedback) {
+  state.morningFeedback = morningFeedback;
+  updateUIForMode();
   try {
     const res = await fetch("/api/sleep/morning-feedback", {
       method: "POST",
