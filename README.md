@@ -229,6 +229,49 @@ To avoid mixing different places/environments, keep them in separate session fol
 Typical workflow:
 
 1. Start the sensor logger on the Pi (`python3 main.py`)
-2. Start the Streamlit app (`streamlit run dashboard/app.py ...`)
+2. Start the web app (`uvicorn fastapi_app:app --host 0.0.0.0 --port 8501`)
 3. Train/update models as you collect data (`python3 models/train_models.py`)
+
+---
+
+## Run as systemd services (recommended on Raspberry Pi)
+
+This project includes service templates and an installer script so the app starts on boot.
+
+### One-time setup
+
+From repo root on Pi:
+
+```bash
+cd ~/EnvSense-AI
+bash scripts/setup_systemd.sh
+```
+
+If your username/project path/venv path differ, pass overrides:
+
+```bash
+ENVSENSE_USER=engg1101 \
+ENVSENSE_PROJECT_DIR=/home/engg1101/EnvSense-AI \
+ENVSENSE_VENV_PATH=/home/engg1101/EnvSense-AI/sensor_env \
+bash scripts/setup_systemd.sh
+```
+
+### What this installs
+
+- `envsense-web.service` -> runs `uvicorn fastapi_app:app --host 0.0.0.0 --port 8501`
+- `envsense-sensor.service` -> runs `python main.py`
+
+### Service control
+
+```bash
+sudo systemctl status envsense-web.service
+sudo systemctl restart envsense-web.service
+sudo journalctl -u envsense-web.service -f
+```
+
+```bash
+sudo systemctl status envsense-sensor.service
+sudo systemctl restart envsense-sensor.service
+sudo journalctl -u envsense-sensor.service -f
+```
 

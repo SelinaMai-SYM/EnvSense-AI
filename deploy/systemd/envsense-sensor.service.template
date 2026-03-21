@@ -1,0 +1,17 @@
+[Unit]
+Description=EnvSense AI Sensor Logger Service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=__USER__
+WorkingDirectory=__PROJECT_DIR__
+Environment="PATH=__VENV_PATH__/bin:/usr/bin:/bin"
+ExecStart=__VENV_PATH__/bin/python main.py
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
+

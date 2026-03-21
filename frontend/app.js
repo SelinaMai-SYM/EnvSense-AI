@@ -48,7 +48,21 @@ function initCharts() {
     const ctx = el(canvasId).getContext("2d");
     return new Chart(ctx, {
       type: "line",
-      data: { labels: [], datasets: [{ label, data: [], borderColor: color, backgroundColor: color }] },
+      data: {
+        labels: [],
+        datasets: [
+          {
+            label,
+            data: [],
+            borderColor: color,
+            backgroundColor: color,
+            pointRadius: 1.2,
+            pointHoverRadius: 3.0,
+            pointBorderWidth: 0,
+            tension: 0.15,
+          },
+        ],
+      },
       options: chartOpts,
     });
   };
@@ -64,21 +78,37 @@ function initCharts() {
 function updateCharts(trends) {
   if (!charts) return;
   const labels = sanitizeLabels(trends?.timestamps);
+  const offline = state.source === "offline";
+  const pointRadius = offline ? 2.2 : 1.2;
+  const pointHoverRadius = offline ? 3.6 : 3.0;
+  const tension = offline ? 0.06 : 0.15;
 
   charts.temp.data.labels = labels;
   charts.temp.data.datasets[0].data = trends?.temp_C ?? [];
+  charts.temp.data.datasets[0].pointRadius = pointRadius;
+  charts.temp.data.datasets[0].pointHoverRadius = pointHoverRadius;
+  charts.temp.data.datasets[0].tension = tension;
   charts.temp.update();
 
   charts.humidity.data.labels = labels;
   charts.humidity.data.datasets[0].data = trends?.humidity ?? [];
+  charts.humidity.data.datasets[0].pointRadius = pointRadius;
+  charts.humidity.data.datasets[0].pointHoverRadius = pointHoverRadius;
+  charts.humidity.data.datasets[0].tension = tension;
   charts.humidity.update();
 
   charts.eco2.data.labels = labels;
   charts.eco2.data.datasets[0].data = trends?.eco2_ppm ?? [];
+  charts.eco2.data.datasets[0].pointRadius = pointRadius;
+  charts.eco2.data.datasets[0].pointHoverRadius = pointHoverRadius;
+  charts.eco2.data.datasets[0].tension = tension;
   charts.eco2.update();
 
   charts.tvoc.data.labels = labels;
   charts.tvoc.data.datasets[0].data = trends?.tvoc ?? [];
+  charts.tvoc.data.datasets[0].pointRadius = pointRadius;
+  charts.tvoc.data.datasets[0].pointHoverRadius = pointHoverRadius;
+  charts.tvoc.data.datasets[0].tension = tension;
   charts.tvoc.update();
 }
 
