@@ -1,0 +1,6 @@
+{
+  "room_reset_best_model": "random_forest",
+  "sleep_guard_best_model": "xgboost",
+  "test_fraction": 0.25,
+  "force_synthetic": false
+}

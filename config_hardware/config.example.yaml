@@ -1,0 +1,21 @@
+sample_interval_sec: 10
+data_paths:
+  # Optional local overrides for offline demos / report generation.
+  # Leave blank to auto-discover project data under `data/`.
+  study_offline_csv:
+  sleep_offline_csv:
+  study_annotation_table:
+  sleep_feedback_table:
+  feedback_output_root: data/session_feedback
+dht22:
+  pin: 21
+  # Optional: try multiple BCM GPIO pins in order until one reads successfully.
+  # pin_candidates: [21, 4, 17]
+ens160:
+  i2c_bus: 1
+  address: 0x53
+oled:
+  enabled: false
+  i2c_bus: 1
+  address: 0x3C
+

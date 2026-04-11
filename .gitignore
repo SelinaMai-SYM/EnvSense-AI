@@ -1,0 +1,19 @@
+__pycache__/
+*.pyc
+.DS_Store
+
+# Python virtual environment (create locally on each machine)
+.venv/
+sensor_env/
+
+# Local hardware config (do not commit secrets/device-specific settings)
+config_hardware/config.yaml
+
+# Generated runtime data
+data/realtime.csv
+data/last_mode.txt
+
+# Trained models are intentionally committed here so the dashboard
+# can use ML inference out of the box in the public repo.
+!models/**/model.joblib
+

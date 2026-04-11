@@ -1,0 +1,21 @@
+pandas
+numpy
+streamlit
+streamlit-autorefresh
+scikit-learn
+joblib
+pyyaml
+matplotlib
+smbus2
+fastapi
+uvicorn[standard]
+xgboost
+lightgbm
+Adafruit-Blinka
+adafruit-circuitpython-dht
+adafruit-circuitpython-ens160
+adafruit-circuitpython-ssd1306
+# Legacy fallback only; often fails to build on newer Raspberry Pi OS/Python.
+# Adafruit_DHT
+# Optional extras can be added below if needed
+

@@ -1,0 +1,5 @@
+timestamp,morning_feedback,location,environment_note
+2026-03-24T06:41:00Z,okay,bedroom,co2_was_borderline_before_midnight_but_brief_ventilation_helped_later
+2026-03-25T07:06:00Z,slept_well,bedroom,air_quality_stayed_stable_and_co2_remained_low_through_the_night
+2026-03-26T07:24:00Z,poor_sleep,bedroom,co2_and_humidity_stayed_high_for_hours_and_ventilation_was_insufficient
+2026-03-27T06:58:00Z,slept_well,bedroom,late_evening_ventilation_kept_the_room_fresh_and_conditions_stayed_comfortable

@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>EnvSense AI</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  </head>
+  <body>
+    <div class="page">
+      <header class="topbar">
+        <div class="title-block">
+          <div class="title">EnvSense AI</div>
+          <div class="subtitle">Personal environment assistant for study and sleep</div>
+        </div>
+      </header>
+
+      <section class="controls">
+        <div class="control-group">
+          <div class="label">Scenario Mode</div>
+          <div class="btn-row">
+            <button id="btn-study" class="btn" type="button">Study Mode</button>
+            <button id="btn-sleep" class="btn" type="button">Sleep Mode</button>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <div class="label">Data Source</div>
+          <div class="radio-row">
+            <label class="radio">
+              <input id="source-realtime" name="source" type="radio" value="realtime" checked />
+              <span>Live Input</span>
+            </label>
+            <label class="radio">
+              <input id="source-offline" name="source" type="radio" value="offline" />
+              <span>Offline Example</span>
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <section class="card live-card">
+        <div class="card-title">Live Data Panel</div>
+        <div class="metrics-grid">
+          <div class="metric">
+            <div class="metric-label">Temperature (°C)</div>
+            <div id="m-temp" class="metric-value">N/A</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Humidity (%)</div>
+            <div id="m-humidity" class="metric-value">N/A</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">eCO2 (ppm)</div>
+            <div id="m-eco2" class="metric-value">N/A</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">TVOC</div>
+            <div id="m-tvoc" class="metric-value">N/A</div>
+          </div>
+        </div>
+        <div id="m-last-updated" class="caption">Last updated: N/A</div>
+      </section>
+
+      <section id="sleep-checkin" class="card checkin-card">
+        <div class="card-title">Sleep Check-in</div>
+        <div class="caption">Future expansion: collect user feedback to improve the sleep-readiness model.</div>
+        <div class="btn-row">
+          <button class="btn" id="btn-checkin-slept" type="button">Slept well</button>
+          <button class="btn" id="btn-checkin-okay" type="button">Okay</button>
+          <button class="btn" id="btn-checkin-poor" type="button">Poor sleep</button>
+        </div>
+        <div id="checkin-status" class="caption"></div>
+      </section>
+
+      <section class="grid-2">
+        <div class="card">
+          <div id="out-title-1" class="card-title">Current room state</div>
+          <div id="out-value-1" class="big-value">N/A</div>
+          <div id="out-subtitle-1" class="caption"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title" id="out-title-2">Best next action</div>
+          <div id="out-value-2" class="big-value">N/A</div>
+          <div id="out-subtitle-2" class="caption"></div>
+        </div>
+      </section>
+
+      <section class="grid-2">
+        <div class="card">
+          <div class="card-title">Confidence</div>
+          <div id="conf-value" class="big-value">0.00</div>
+          <div id="conf-label" class="caption">Label: Low</div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Why this recommendation?</div>
+          <div id="out-explanation" class="explanation">N/A</div>
+        </div>
+      </section>
+
+      <section class="card trends-card">
+        <div class="card-title">Trends</div>
+        <div id="trends-subtitle" class="caption">Past 5 minutes</div>
+        <div class="charts-grid">
+          <div class="chart-wrap">
+            <div class="chart-label">Temperature (°C)</div>
+            <canvas id="chart-temp"></canvas>
+          </div>
+          <div class="chart-wrap">
+            <div class="chart-label">Humidity (%)</div>
+            <canvas id="chart-humidity"></canvas>
+          </div>
+          <div class="chart-wrap">
+            <div class="chart-label">eCO2 (ppm)</div>
+            <canvas id="chart-eco2"></canvas>
+          </div>
+          <div class="chart-wrap">
+            <div class="chart-label">TVOC</div>
+            <canvas id="chart-tvoc"></canvas>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
+
