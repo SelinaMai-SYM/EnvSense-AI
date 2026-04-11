@@ -145,15 +145,9 @@ What it does:
 - Trains **Room Reset Coach** model (`models/room_reset/model.joblib`)
 - Trains **Sleep Guard** model (`models/sleep_guard/model.joblib`)
 - Uses `data/realtime.csv` windows + optional discovered annotation tables
-- If data is missing/insufficient, it backfills with **synthetic bootstrap data**
+- Fits the models from recorded sensor windows, tracked study labels, and sleep feedback tables
 
 Trained models are saved as `model.joblib`.
-
-Synthetic-only training (debug):
-
-```bash
-python3 models/train_models.py --force-synthetic
-```
 
 ---
 

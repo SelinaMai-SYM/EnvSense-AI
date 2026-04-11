@@ -79,7 +79,7 @@ def _extract_training_from_realtime(
     return X_rows, y
 
 
-def _bootstrap_synthetic_training(
+def _build_bootstrap_training_rows(
     *,
     sample_interval_sec: int,
     n_sequences: int = 6,
@@ -175,7 +175,7 @@ def train_sleep_guard_model(
     *,
     realtime_csv_path: str | Path,
     model_path: str | Path,
-    force_synthetic: bool = False,
+    skip_realtime_labels: bool = False,
     model_name: str = "random_forest",
 ) -> Path:
     """
@@ -198,20 +198,20 @@ def train_sleep_guard_model(
         sample_interval_sec=sample_interval_sec,
     )
 
-    if not force_synthetic:
+    if not skip_realtime_labels:
         X_auto, y_auto = _extract_training_from_realtime(df, sample_interval_sec=sample_interval_sec)
         X_rows.extend(X_auto)
         y.extend(y_auto)
 
     min_samples = 220
     if len(y) < min_samples:
-        X_syn, y_syn = _bootstrap_synthetic_training(sample_interval_sec=sample_interval_sec)
-        X_rows = X_rows + X_syn
-        y = y + y_syn
+        X_bootstrap, y_bootstrap = _build_bootstrap_training_rows(sample_interval_sec=sample_interval_sec)
+        X_rows = X_rows + X_bootstrap
+        y = y + y_bootstrap
 
     if len(y) == 0:
-        X_syn, y_syn = _bootstrap_synthetic_training(sample_interval_sec=sample_interval_sec, n_sequences=3, duration_minutes=200)
-        X_rows, y = X_syn, y_syn
+        X_bootstrap, y_bootstrap = _build_bootstrap_training_rows(sample_interval_sec=sample_interval_sec, n_sequences=3, duration_minutes=200)
+        X_rows, y = X_bootstrap, y_bootstrap
 
     feature_names = sorted(X_rows[0].keys()) if X_rows else []
     X = pd.DataFrame([{k: row.get(k, 0.0) for k in feature_names} for row in X_rows], columns=feature_names)
@@ -280,7 +280,7 @@ def _build_classifier(model_name: str, *, class_names: List[str]):
 def build_sleep_guard_training_frame(
     *,
     realtime_csv_path: str | Path,
-    force_synthetic: bool = False,
+    skip_realtime_labels: bool = False,
 ) -> pd.DataFrame:
     realtime_csv_path = Path(realtime_csv_path)
     cfg = load_hardware_config()
@@ -296,20 +296,20 @@ def build_sleep_guard_training_frame(
         sample_interval_sec=sample_interval_sec,
     )
 
-    if not force_synthetic:
+    if not skip_realtime_labels:
         X_auto, y_auto = _extract_training_from_realtime(df, sample_interval_sec=sample_interval_sec)
         X_rows.extend(X_auto)
         y.extend(y_auto)
 
     min_samples = 220
     if len(y) < min_samples:
-        X_syn, y_syn = _bootstrap_synthetic_training(sample_interval_sec=sample_interval_sec)
-        X_rows = X_rows + X_syn
-        y = y + y_syn
+        X_bootstrap, y_bootstrap = _build_bootstrap_training_rows(sample_interval_sec=sample_interval_sec)
+        X_rows = X_rows + X_bootstrap
+        y = y + y_bootstrap
 
     if len(y) == 0:
-        X_syn, y_syn = _bootstrap_synthetic_training(sample_interval_sec=sample_interval_sec, n_sequences=3, duration_minutes=200)
-        X_rows, y = X_syn, y_syn
+        X_bootstrap, y_bootstrap = _build_bootstrap_training_rows(sample_interval_sec=sample_interval_sec, n_sequences=3, duration_minutes=200)
+        X_rows, y = X_bootstrap, y_bootstrap
 
     feature_names = sorted(X_rows[0].keys()) if X_rows else []
     X = pd.DataFrame([{k: row.get(k, 0.0) for k in feature_names} for row in X_rows], columns=feature_names)
@@ -323,9 +323,9 @@ def evaluate_sleep_guard_model(
     realtime_csv_path: str | Path,
     model_name: str,
     test_fraction: float = 0.25,
-    force_synthetic: bool = False,
+    skip_realtime_labels: bool = False,
 ) -> Dict[str, Any]:
-    data = build_sleep_guard_training_frame(realtime_csv_path=realtime_csv_path, force_synthetic=force_synthetic)
+    data = build_sleep_guard_training_frame(realtime_csv_path=realtime_csv_path, skip_realtime_labels=skip_realtime_labels)
     if data.empty or len(data) < 4:
         return {
             "model_name": model_name,

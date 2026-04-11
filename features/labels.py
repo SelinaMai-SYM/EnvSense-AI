@@ -24,7 +24,7 @@ def simulate_environment_series(
     scenario: str = "study",
 ) -> pd.DataFrame:
     """
-    Generate a realistic synthetic time series for end-to-end operation.
+    Generate a realistic simulated time series for end-to-end operation.
 
     scenario:
       - "study": more pronounced occupancy bursts
@@ -110,7 +110,7 @@ def simulate_environment_series(
 
 def derive_room_reset_best_action(df_past: pd.DataFrame, df_future: pd.DataFrame) -> str:
     """
-    Heuristic label derivation for Room Reset Coach (synthetic bootstrapping).
+    Heuristic label derivation for Room Reset Coach bootstrap data.
     """
     if df_past is None or df_past.empty:
         return "Move soon"

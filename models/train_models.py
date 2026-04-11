@@ -48,7 +48,7 @@ def _save_model_score_chart(df: pd.DataFrame, *, title: str, path: Path) -> None
 
 def main(
     *,
-    force_synthetic: bool = False,
+    skip_realtime_labels: bool = False,
     room_reset_csv_path: str | None = None,
     sleep_csv_path: str | None = None,
     test_fraction: float = 0.25,
@@ -64,7 +64,7 @@ def main(
             realtime_csv_path=room_csv,
             model_name=model_name,
             test_fraction=test_fraction,
-            force_synthetic=force_synthetic,
+            skip_realtime_labels=skip_realtime_labels,
         )
         room_eval_rows.append(m)
 
@@ -74,7 +74,7 @@ def main(
     train_room_reset_model(
         realtime_csv_path=room_csv,
         model_path=root / "models" / "room_reset" / "model.joblib",
-        force_synthetic=force_synthetic,
+        skip_realtime_labels=skip_realtime_labels,
         model_name=best_room_model,
     )
 
@@ -85,7 +85,7 @@ def main(
             realtime_csv_path=sleep_csv,
             model_name=model_name,
             test_fraction=test_fraction,
-            force_synthetic=force_synthetic,
+            skip_realtime_labels=skip_realtime_labels,
         )
         sleep_eval_rows.append(m)
 
@@ -95,7 +95,7 @@ def main(
     train_sleep_guard_model(
         realtime_csv_path=sleep_csv,
         model_path=root / "models" / "sleep_guard" / "model.joblib",
-        force_synthetic=force_synthetic,
+        skip_realtime_labels=skip_realtime_labels,
         model_name=best_sleep_model,
     )
 
@@ -119,7 +119,7 @@ def main(
         "room_reset_best_model": best_room_model,
         "sleep_guard_best_model": best_sleep_model,
         "test_fraction": test_fraction,
-        "force_synthetic": force_synthetic,
+        "skip_realtime_labels": skip_realtime_labels,
     }
     (report_dir / "best_model_summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
 
@@ -130,9 +130,9 @@ def main(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train Room Reset and Sleep Guard models.")
     parser.add_argument(
-        "--force-synthetic",
+        "--skip-realtime-labels",
         action="store_true",
-        help="Ignore realtime/session labels and train from synthetic data only.",
+        help=argparse.SUPPRESS,
     )
     parser.add_argument(
         "--room-reset-csv",
@@ -154,7 +154,7 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
     main(
-        force_synthetic=args.force_synthetic,
+        skip_realtime_labels=args.skip_realtime_labels,
         room_reset_csv_path=args.room_reset_csv,
         sleep_csv_path=args.sleep_csv,
         test_fraction=args.test_fraction,
