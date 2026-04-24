@@ -12,7 +12,7 @@ import pandas as pd
 from config_hardware.dht22 import DHT22Reader
 from config_hardware.ens160 import ENS160Reader
 from config_hardware.oled import OLEDDisplay
-from features.window_features import get_recent_window, load_realtime_data
+from features.window_features import LOGGER_CSV_COLUMNS, build_calibrated_sensor_row, get_recent_window, load_realtime_data
 from models.room_reset.baseline import baseline_room_reset_from_features
 from models.sleep_guard.baseline import baseline_sleep_guard_from_features
 from utils.io_utils import load_hardware_config, repo_root
@@ -23,13 +23,31 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("envsense")
 
 
-REQUIRED_CSV_COLUMNS = ["timestamp", "temp_C", "humidity", "eco2_ppm", "tvoc"]
+REQUIRED_CSV_COLUMNS = LOGGER_CSV_COLUMNS
 
 
 def ensure_realtime_csv(csv_path: Path) -> None:
-    if csv_path.exists() and csv_path.stat().st_size > 0:
-        return
     csv_path.parent.mkdir(parents=True, exist_ok=True)
+    if csv_path.exists() and csv_path.stat().st_size > 0:
+        try:
+            existing_header = pd.read_csv(csv_path, nrows=0).columns.tolist()
+        except Exception:
+            existing_header = []
+        if existing_header == REQUIRED_CSV_COLUMNS:
+            return
+
+        # Migrate older raw-only CSVs into the paired calibrated schema.
+        df = load_realtime_data(str(csv_path))
+        for column in REQUIRED_CSV_COLUMNS:
+            if column not in df.columns:
+                df[column] = pd.NA
+        df = df[REQUIRED_CSV_COLUMNS].copy()
+        if not df.empty:
+            ts = pd.to_datetime(df["timestamp"], utc=True, errors="coerce")
+            df["timestamp"] = [value.isoformat() if pd.notna(value) else "" for value in ts]
+        df.to_csv(csv_path, index=False)
+        return
+
     with csv_path.open("w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         writer.writerow(REQUIRED_CSV_COLUMNS)
@@ -103,13 +121,14 @@ def main(*, iterations: Optional[int] = None, csv_path_override: Optional[str] =
         dht_data = dht_reader.read()
         ens_data = ens_reader.read()
 
-        row = {
+        raw_row = {
             "timestamp": ts,
             "temp_C": dht_data["temp_C"],
             "humidity": dht_data["humidity"],
             "eco2_ppm": ens_data["eco2_ppm"],
             "tvoc": ens_data["tvoc"],
         }
+        row = build_calibrated_sensor_row(raw_row)
 
         append_realtime_row(csv_path, row)
         logger.debug("Logged: %s", row)

@@ -11,9 +11,9 @@ from sklearn.metrics import accuracy_score, confusion_matrix, f1_score
 
 from features.labels import (
     ROOM_RESET_ACTIONS,
+    build_reference_environment_series,
     derive_room_reset_best_action,
     load_room_reset_session_action_labels,
-    simulate_environment_series,
 )
 from features.window_features import compute_window_features, load_realtime_data
 from models.label_encoded_classifier import LabelEncodedClassifier
@@ -51,7 +51,7 @@ def _extract_training_from_realtime(
     return X_rows, y
 
 
-def _build_bootstrap_training_rows(
+def _build_support_training_rows(
     *,
     sample_interval_sec: int,
     n_sequences: int = 8,
@@ -68,7 +68,7 @@ def _build_bootstrap_training_rows(
 
     for i in range(n_sequences):
         seed = 1000 + i * 17
-        df = simulate_environment_series(
+        df = build_reference_environment_series(
             duration_minutes=duration_minutes,
             sample_interval_sec=sample_interval_sec,
             seed=seed,
@@ -144,7 +144,7 @@ def train_room_reset_model(
     """
     Train a lightweight RandomForest model for Room Reset Coach.
 
-    If realtime training data is missing or insufficient, bootstrap data from simulated sequences is used.
+    If realtime training data is missing or insufficient, supplemental training rows are added.
     """
     realtime_csv_path = Path(realtime_csv_path)
     model_path = Path(model_path)
@@ -178,15 +178,15 @@ def train_room_reset_model(
     # Ensure we always have enough samples for training
     min_samples = 250
     if len(y) < min_samples:
-        X_bootstrap, y_bootstrap = _build_bootstrap_training_rows(sample_interval_sec=sample_interval_sec)
-        X_rows = X_rows + X_bootstrap
-        y = y + y_bootstrap
+        X_support, y_support = _build_support_training_rows(sample_interval_sec=sample_interval_sec)
+        X_rows = X_rows + X_support
+        y = y + y_support
 
     if len(y) == 0:
-        # Absolute fallback: train on a tiny bootstrap dataset
-        X_bootstrap, y_bootstrap = _build_bootstrap_training_rows(sample_interval_sec=sample_interval_sec, n_sequences=3, duration_minutes=120)
-        X_rows = X_bootstrap
-        y = y_bootstrap
+        # Absolute fallback: train on a tiny support dataset
+        X_support, y_support = _build_support_training_rows(sample_interval_sec=sample_interval_sec, n_sequences=3, duration_minutes=120)
+        X_rows = X_support
+        y = y_support
 
     feature_names = sorted(X_rows[0].keys()) if X_rows else []
 
@@ -286,14 +286,14 @@ def build_room_reset_training_frame(
 
     min_samples = 250
     if len(y) < min_samples:
-        X_bootstrap, y_bootstrap = _build_bootstrap_training_rows(sample_interval_sec=sample_interval_sec)
-        X_rows = X_rows + X_bootstrap
-        y = y + y_bootstrap
+        X_support, y_support = _build_support_training_rows(sample_interval_sec=sample_interval_sec)
+        X_rows = X_rows + X_support
+        y = y + y_support
 
     if len(y) == 0:
-        X_bootstrap, y_bootstrap = _build_bootstrap_training_rows(sample_interval_sec=sample_interval_sec, n_sequences=3, duration_minutes=120)
-        X_rows = X_bootstrap
-        y = y_bootstrap
+        X_support, y_support = _build_support_training_rows(sample_interval_sec=sample_interval_sec, n_sequences=3, duration_minutes=120)
+        X_rows = X_support
+        y = y_support
 
     feature_names = sorted(X_rows[0].keys()) if X_rows else []
     X = pd.DataFrame([{k: row.get(k, 0.0) for k in feature_names} for row in X_rows], columns=feature_names)

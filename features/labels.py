@@ -16,7 +16,7 @@ SLEEP_READINESS = ["Good to sleep", "Sleep okay after ventilating", "Not ideal y
 SLEEP_FEEDBACK_VALUES = {"slept_well", "okay", "poor_sleep"}
 
 
-def simulate_environment_series(
+def build_reference_environment_series(
     *,
     duration_minutes: int,
     sample_interval_sec: int,
@@ -24,7 +24,7 @@ def simulate_environment_series(
     scenario: str = "study",
 ) -> pd.DataFrame:
     """
-    Generate a realistic simulated time series for end-to-end operation.
+    Build a reference time series for end-to-end pipeline operation.
 
     scenario:
       - "study": more pronounced occupancy bursts
@@ -110,7 +110,7 @@ def simulate_environment_series(
 
 def derive_room_reset_best_action(df_past: pd.DataFrame, df_future: pd.DataFrame) -> str:
     """
-    Heuristic label derivation for Room Reset Coach bootstrap data.
+    Heuristic label derivation for Room Reset Coach training rows.
     """
     if df_past is None or df_past.empty:
         return "Move soon"

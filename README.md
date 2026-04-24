@@ -13,7 +13,7 @@ The system provides **one web dashboard** with **two scenario modules**:
 2. **Sleep Guard (Sleep Mode)**  
    Helps you decide whether the current space is sleep-ready, or whether you should ventilate first.
 
-Both modules share the same **sensing pipeline** and use **lightweight ML (RandomForest)** with safe baseline fallbacks when models are not available.
+Both modules share the same **sensing pipeline**, combine **interpretable baseline rules** with **lightweight tree-based ML classifiers**, and expose their outputs through the same web dashboard workflow.
 
 ---
 
@@ -74,7 +74,14 @@ i2cdetect -y 1
 
 ## Run the sensor logger
 
-This continuously reads sensors every `sample_interval_sec` and appends one CSV row into `data/realtime.csv`.
+This continuously reads sensors every `sample_interval_sec` and appends one calibrated pipeline row into `data/realtime.csv`.
+The logger keeps paired **unadjusted** and **offset-adjusted** variants of the core traces:
+
+- Temperature: `-1.3 °C`
+- eCO2: `+300 ppm`
+- Humidity / TVOC: unchanged
+
+The canonical dashboard and model columns (`temp_C`, `humidity`, `eco2_ppm`, `tvoc`) use the calibrated values, while paired raw/adjusted variants are also retained for traceability.
 
 ```bash
 python3 main.py
@@ -96,17 +103,21 @@ python3 main.py --iterations 100
 CSV columns:
 
 - `timestamp` (ISO 8601)
-- `temp_C`, `humidity`, `eco2_ppm`, `tvoc`
+- `temp_C`, `humidity`, `eco2_ppm`, `tvoc` -> calibrated values used by the dashboard, rules, and ML pipeline
+- `temp_C_unadjusted`, `humidity_unadjusted`, `eco2_ppm_unadjusted`, `tvoc_unadjusted` -> original logged readings
+- `temp_C_adjusted`, `humidity_adjusted`, `eco2_ppm_adjusted`, `tvoc_adjusted` -> explicit processed trace variant
 
 ---
 
-## Run the Web Dashboard (FastAPI + HTML/CSS/JS)
+## Run the Web Dashboard (FastAPI + static frontend)
 
 ```bash
-uvicorn fastapi_app:app --host 0.0.0.0 --port 8501 --reload
+uvicorn fastapi_app:app --host 0.0.0.0 --port 8501
 ```
 
 The front-end calls backend APIs every **10 seconds** in live mode (offline example mode uses a slower refresh).
+This is the primary report-aligned dashboard entry point. The API and dashboard views use the calibrated trace variant by default.
+For local development on your laptop, you can optionally add `--reload`.
 
 ---
 
@@ -115,12 +126,14 @@ The front-end calls backend APIs every **10 seconds** in live mode (offline exam
 Each module uses:
 
 - **Interpretable baseline rules** (always available)
-- A **lightweight RandomForestClassifier** (joblib model trained locally)
+- A **trained tree-based classifier** selected from **Random Forest**, **XGBoost**, and **LightGBM**
 
 Inference on the Pi:
 
 - If `models/**/model.joblib` exists, the model is used
 - If a model is missing, the system falls back to the baseline rules
+
+The training pipeline compares the three candidate models for each module, prioritises **macro F1** before **accuracy**, and then saves the selected model for deployment. In the final report-aligned evaluation, **Room Reset Coach** selected **Random Forest**, while **Sleep Guard** selected **XGBoost**.
 
 ---
 
@@ -142,6 +155,8 @@ python3 models/train_models.py \
 
 What it does:
 
+- Compares **Random Forest**, **XGBoost**, and **LightGBM** for each module
+- Selects the strongest candidate using a sequential **75/25** train-test split with **macro F1 first** and **accuracy second**
 - Trains **Room Reset Coach** model (`models/room_reset/model.joblib`)
 - Trains **Sleep Guard** model (`models/sleep_guard/model.joblib`)
 - Uses `data/realtime.csv` windows + optional discovered annotation tables
@@ -207,7 +222,7 @@ The trainer maps these to:
 Typical workflow:
 
 1. Start the sensor logger on the Pi (`python3 main.py`)
-2. Start the web app (`uvicorn fastapi_app:app --host 0.0.0.0 --port 8501`)
+2. Start the report-aligned dashboard entry (`uvicorn fastapi_app:app --host 0.0.0.0 --port 8501`)
 3. Train/update models as you collect data (`python3 models/train_models.py`)
 
 ---

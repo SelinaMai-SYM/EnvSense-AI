@@ -6,7 +6,74 @@ import pandas as pd
 import numpy as np
 
 
-CSV_COLUMNS = ["timestamp", "temp_C", "humidity", "eco2_ppm", "tvoc"]
+CORE_SENSOR_COLUMNS = ["temp_C", "humidity", "eco2_ppm", "tvoc"]
+CSV_COLUMNS = ["timestamp", *CORE_SENSOR_COLUMNS]
+CALIBRATION_OFFSETS = {
+    "temp_C": -1.3,
+    "humidity": 0.0,
+    "eco2_ppm": 300.0,
+    "tvoc": 0.0,
+}
+
+
+def unadjusted_column_name(column: str) -> str:
+    return f"{column}_unadjusted"
+
+
+def adjusted_column_name(column: str) -> str:
+    return f"{column}_adjusted"
+
+
+CALIBRATION_VARIANT_COLUMNS = [
+    *(unadjusted_column_name(column) for column in CORE_SENSOR_COLUMNS),
+    *(adjusted_column_name(column) for column in CORE_SENSOR_COLUMNS),
+]
+LOGGER_CSV_COLUMNS = ["timestamp", *CORE_SENSOR_COLUMNS, *CALIBRATION_VARIANT_COLUMNS]
+
+
+def _empty_sensor_frame() -> pd.DataFrame:
+    return pd.DataFrame(columns=LOGGER_CSV_COLUMNS)
+
+
+def _numeric_series(df: pd.DataFrame, column: str) -> pd.Series:
+    if column not in df.columns:
+        return pd.Series(np.nan, index=df.index, dtype=float)
+    return pd.to_numeric(df[column], errors="coerce")
+
+
+def apply_sensor_calibration(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Keep paired unadjusted/adjusted traces while exposing calibrated values
+    through the canonical sensor columns used by the rest of the pipeline.
+    """
+    if df is None:
+        return _empty_sensor_frame()
+
+    out = df.copy()
+    for column in CORE_SENSOR_COLUMNS:
+        raw_column = unadjusted_column_name(column)
+        adjusted_column = adjusted_column_name(column)
+        raw_values = _numeric_series(out, raw_column if raw_column in out.columns else column)
+        adjusted_values = raw_values + CALIBRATION_OFFSETS[column]
+        out[raw_column] = raw_values
+        out[adjusted_column] = adjusted_values
+        out[column] = adjusted_values
+    return out
+
+
+def build_calibrated_sensor_row(row: Dict[str, float | str]) -> Dict[str, float | str]:
+    """
+    Expand one raw sensor row into canonical calibrated fields plus paired
+    unadjusted/adjusted variants for traceability.
+    """
+    out: Dict[str, float | str] = dict(row)
+    for column in CORE_SENSOR_COLUMNS:
+        raw_value = pd.to_numeric(pd.Series([out.get(column)]), errors="coerce").iloc[0]
+        adjusted_value = raw_value + CALIBRATION_OFFSETS[column] if pd.notna(raw_value) else raw_value
+        out[unadjusted_column_name(column)] = raw_value
+        out[adjusted_column_name(column)] = adjusted_value
+        out[column] = adjusted_value
+    return out
 
 
 def load_realtime_data(csv_path: str | "pd.PathLike[str]" | None) -> pd.DataFrame:
@@ -16,28 +83,31 @@ def load_realtime_data(csv_path: str | "pd.PathLike[str]" | None) -> pd.DataFram
     If the file doesn't exist yet, returns an empty DataFrame with expected columns.
     """
     if csv_path is None:
-        return pd.DataFrame(columns=CSV_COLUMNS)
+        return _empty_sensor_frame()
 
     p = str(csv_path)
     try:
         df = pd.read_csv(p)
     except FileNotFoundError:
-        return pd.DataFrame(columns=CSV_COLUMNS)
+        return _empty_sensor_frame()
 
     if df.empty:
-        return pd.DataFrame(columns=CSV_COLUMNS)
+        return _empty_sensor_frame()
 
     if "timestamp" not in df.columns:
-        return pd.DataFrame(columns=CSV_COLUMNS)
+        return _empty_sensor_frame()
 
     for c in CSV_COLUMNS:
         if c not in df.columns:
             df[c] = np.nan
 
-    df = df[CSV_COLUMNS].copy()
+    df = df.copy()
     df["timestamp"] = pd.to_datetime(df["timestamp"], utc=True, errors="coerce")
-    df = df.dropna(subset=["timestamp"]).sort_values("timestamp")
-    return df
+    df = df.dropna(subset=["timestamp"]).sort_values("timestamp").reset_index(drop=True)
+    df = apply_sensor_calibration(df)
+    ordered = ["timestamp", *CORE_SENSOR_COLUMNS, *CALIBRATION_VARIANT_COLUMNS]
+    remainder = [column for column in df.columns if column not in ordered]
+    return df[ordered + remainder]
 
 
 def get_recent_window(df: pd.DataFrame, minutes: int) -> pd.DataFrame:
@@ -72,7 +142,7 @@ def compute_window_features(df_window: pd.DataFrame) -> Dict[str, float]:
     if df_window is None or df_window.empty:
         # Keep a stable schema for training/inference
         base: Dict[str, float] = {}
-        for var in ["temp_C", "humidity", "eco2_ppm", "tvoc"]:
+        for var in CORE_SENSOR_COLUMNS:
             for stat in ["mean", "std", "min", "max", "last", "slope", "delta_last_first"]:
                 base[f"{var}_{stat}"] = 0.0
         base["tvoc_spike_flag"] = 0.0
@@ -83,7 +153,7 @@ def compute_window_features(df_window: pd.DataFrame) -> Dict[str, float]:
     df_window = df_window.sort_values("timestamp")
 
     out: Dict[str, float] = {}
-    for var in ["temp_C", "humidity", "eco2_ppm", "tvoc"]:
+    for var in CORE_SENSOR_COLUMNS:
         arr = pd.to_numeric(df_window.get(var), errors="coerce").dropna().to_numpy(dtype=float)
         if arr.size == 0:
             stats = {"mean": 0.0, "std": 0.0, "min": 0.0, "max": 0.0, "last": 0.0, "slope": 0.0}

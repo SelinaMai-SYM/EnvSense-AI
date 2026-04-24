@@ -11,9 +11,9 @@ from sklearn.metrics import accuracy_score, confusion_matrix, f1_score
 
 from features.labels import (
     SLEEP_READINESS,
+    build_reference_environment_series,
     derive_sleep_readiness,
     load_sleep_feedback_labels,
-    simulate_environment_series,
 )
 from features.window_features import compute_window_features, load_realtime_data
 from models.label_encoded_classifier import LabelEncodedClassifier
@@ -79,7 +79,7 @@ def _extract_training_from_realtime(
     return X_rows, y
 
 
-def _build_bootstrap_training_rows(
+def _build_support_training_rows(
     *,
     sample_interval_sec: int,
     n_sequences: int = 6,
@@ -94,7 +94,7 @@ def _build_bootstrap_training_rows(
 
     for i in range(n_sequences):
         seed = 2000 + i * 29
-        df = simulate_environment_series(
+        df = build_reference_environment_series(
             duration_minutes=duration_minutes,
             sample_interval_sec=sample_interval_sec,
             seed=seed,
@@ -205,13 +205,13 @@ def train_sleep_guard_model(
 
     min_samples = 220
     if len(y) < min_samples:
-        X_bootstrap, y_bootstrap = _build_bootstrap_training_rows(sample_interval_sec=sample_interval_sec)
-        X_rows = X_rows + X_bootstrap
-        y = y + y_bootstrap
+        X_support, y_support = _build_support_training_rows(sample_interval_sec=sample_interval_sec)
+        X_rows = X_rows + X_support
+        y = y + y_support
 
     if len(y) == 0:
-        X_bootstrap, y_bootstrap = _build_bootstrap_training_rows(sample_interval_sec=sample_interval_sec, n_sequences=3, duration_minutes=200)
-        X_rows, y = X_bootstrap, y_bootstrap
+        X_support, y_support = _build_support_training_rows(sample_interval_sec=sample_interval_sec, n_sequences=3, duration_minutes=200)
+        X_rows, y = X_support, y_support
 
     feature_names = sorted(X_rows[0].keys()) if X_rows else []
     X = pd.DataFrame([{k: row.get(k, 0.0) for k in feature_names} for row in X_rows], columns=feature_names)
@@ -303,13 +303,13 @@ def build_sleep_guard_training_frame(
 
     min_samples = 220
     if len(y) < min_samples:
-        X_bootstrap, y_bootstrap = _build_bootstrap_training_rows(sample_interval_sec=sample_interval_sec)
-        X_rows = X_rows + X_bootstrap
-        y = y + y_bootstrap
+        X_support, y_support = _build_support_training_rows(sample_interval_sec=sample_interval_sec)
+        X_rows = X_rows + X_support
+        y = y + y_support
 
     if len(y) == 0:
-        X_bootstrap, y_bootstrap = _build_bootstrap_training_rows(sample_interval_sec=sample_interval_sec, n_sequences=3, duration_minutes=200)
-        X_rows, y = X_bootstrap, y_bootstrap
+        X_support, y_support = _build_support_training_rows(sample_interval_sec=sample_interval_sec, n_sequences=3, duration_minutes=200)
+        X_rows, y = X_support, y_support
 
     feature_names = sorted(X_rows[0].keys()) if X_rows else []
     X = pd.DataFrame([{k: row.get(k, 0.0) for k in feature_names} for row in X_rows], columns=feature_names)
